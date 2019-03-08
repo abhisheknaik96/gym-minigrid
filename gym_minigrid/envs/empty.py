@@ -6,12 +6,13 @@ class EmptyEnv(MiniGridEnv):
     Empty grid environment, no obstacles, sparse reward
     """
 
-    def __init__(self, size=8):
+    def __init__(self, size=8, continuous=False):
         super().__init__(
             grid_size=size,
             max_steps=4*size*size,
             # Set this to True for maximum speed
-            see_through_walls=True
+            see_through_walls=True,
+            is_continuous=continuous
         )
 
     def _gen_grid(self, width, height):
@@ -38,6 +39,10 @@ class EmptyEnv16x16(EmptyEnv):
     def __init__(self):
         super().__init__(size=16)
 
+class EmptyEnv8x8Cont(EmptyEnv):
+    def __init__(self):
+        super().__init__(continuous=True)
+
 register(
     id='MiniGrid-Empty-6x6-v0',
     entry_point='gym_minigrid.envs:EmptyEnv6x6'
@@ -51,4 +56,9 @@ register(
 register(
     id='MiniGrid-Empty-16x16-v0',
     entry_point='gym_minigrid.envs:EmptyEnv16x16'
+)
+
+register(
+    id='MiniGrid-Empty-8x8-cont-v0',
+    entry_point='gym_minigrid.envs:EmptyEnv8x8Cont'
 )

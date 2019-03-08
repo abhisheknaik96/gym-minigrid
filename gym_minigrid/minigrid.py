@@ -669,7 +669,8 @@ class MiniGridEnv(gym.Env):
         height=None,
         max_steps=100,
         see_through_walls=False,
-        seed=1337
+        seed=1337,
+        is_continuous=True
     ):
         # Can't set both grid_size and width/height
         if grid_size:
@@ -709,6 +710,7 @@ class MiniGridEnv(gym.Env):
         self.height = height
         self.max_steps = max_steps
         self.see_through_walls = see_through_walls
+        self.is_continuous = is_continuous
 
         # Starting position and direction for the agent
         self.start_pos = None
@@ -826,7 +828,8 @@ class MiniGridEnv(gym.Env):
         Compute the reward to be given upon success
         """
 
-        return 1 - 0.9 * (self.step_count / self.max_steps)
+        reward = 1 if self.is_continuous else (1 - 0.9 * (self.step_count / self.max_steps))
+        return reward
 
     def _rand_int(self, low, high):
         """
@@ -1117,7 +1120,10 @@ class MiniGridEnv(gym.Env):
             if fwd_cell == None or fwd_cell.can_overlap():
                 self.agent_pos = fwd_pos
             if fwd_cell != None and fwd_cell.type == 'goal':
-                done = True
+                if self.is_continuous :
+                    self.agent_pos = self.start_pos
+                else:
+                    done = True
                 reward = self._reward()
             if fwd_cell != None and fwd_cell.type == 'lava':
                 done = True

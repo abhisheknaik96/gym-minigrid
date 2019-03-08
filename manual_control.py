@@ -17,7 +17,7 @@ def main():
         "--env-name",
         dest="env_name",
         help="gym environment to load",
-        default='MiniGrid-MultiRoom-N6-v0'
+        default='MiniGrid-Empty-8x8-cont-v0'
     )
     (options, args) = parser.parse_args()
 
