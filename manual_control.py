@@ -49,17 +49,21 @@ def main():
         elif keyName == 'RIGHT':
             action = env.actions.right
         elif keyName == 'UP':
-            action = env.actions.forward
+            action = env.actions.up
+        elif keyName == 'DOWN':
+            action = env.actions.down
 
-        elif keyName == 'SPACE':
-            action = env.actions.toggle
-        elif keyName == 'PAGE_UP':
-            action = env.actions.pickup
-        elif keyName == 'PAGE_DOWN':
-            action = env.actions.drop
-
-        elif keyName == 'RETURN':
-            action = env.actions.done
+        ### Not implemented yet
+        #
+        # elif keyName == 'SPACE':
+        #     action = env.actions.toggle
+        # elif keyName == 'PAGE_UP':
+        #     action = env.actions.pickup
+        # elif keyName == 'PAGE_DOWN':
+        #     action = env.actions.drop
+        #
+        # elif keyName == 'RETURN':
+        #     action = env.actions.done
 
         else:
             print("unknown key %s" % keyName)

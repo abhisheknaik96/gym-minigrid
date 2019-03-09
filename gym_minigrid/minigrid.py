@@ -647,20 +647,22 @@ class MiniGridEnv(gym.Env):
 
     # Enumeration of possible actions
     class Actions(IntEnum):
-        # Turn left, turn right, move forward
-        left = 0
+
+        # Move up, down, left, right
+        up = 0
         right = 1
-        forward = 2
+        down = 2
+        left = 3
 
         # Pick up an object
-        pickup = 3
+        pickup = 4
         # Drop an object
-        drop = 4
+        drop = 5
         # Toggle/activate an object
-        toggle = 5
+        toggle = 6
 
         # Done completing task
-        done = 6
+        done = 7
 
     def __init__(
         self,
@@ -1099,63 +1101,60 @@ class MiniGridEnv(gym.Env):
         reward = 0
         done = False
 
-        # Get the position in front of the agent
-        fwd_pos = self.front_pos
-
-        # Get the contents of the cell in front of the agent
-        fwd_cell = self.grid.get(*fwd_pos)
-
-        # Rotate left
-        if action == self.actions.left:
-            self.agent_dir -= 1
-            if self.agent_dir < 0:
-                self.agent_dir += 4
-
-        # Rotate right
+        # Move up
+        if action == self.actions.up:
+            next_pos = (self.agent_pos[0], self.agent_pos[1] - 1)
+        # Move right
         elif action == self.actions.right:
-            self.agent_dir = (self.agent_dir + 1) % 4
-
-        # Move forward
-        elif action == self.actions.forward:
-            if fwd_cell == None or fwd_cell.can_overlap():
-                self.agent_pos = fwd_pos
-            if fwd_cell != None and fwd_cell.type == 'goal':
-                if self.is_continuous :
-                    self.agent_pos = self.start_pos
-                else:
-                    done = True
-                reward = self._reward()
-            if fwd_cell != None and fwd_cell.type == 'lava':
-                done = True
-
-        # Pick up an object
-        elif action == self.actions.pickup:
-            if fwd_cell and fwd_cell.can_pickup():
-                if self.carrying is None:
-                    self.carrying = fwd_cell
-                    self.carrying.cur_pos = np.array([-1, -1])
-                    self.grid.set(*fwd_pos, None)
-
-        # Drop an object
-        elif action == self.actions.drop:
-            if not fwd_cell and self.carrying:
-                self.grid.set(*fwd_pos, self.carrying)
-                self.carrying.cur_pos = fwd_pos
-                self.carrying = None
-
-        # Toggle/activate an object
-        elif action == self.actions.toggle:
-            if fwd_cell:
-                fwd_cell.toggle(self, fwd_pos)
-
-        # Done action (not used by default)
-        elif action == self.actions.done:
-            pass
-
+            next_pos = (self.agent_pos[0] + 1, self.agent_pos[1])
+        # Move down
+        elif action == self.actions.down:
+            next_pos = (self.agent_pos[0], self.agent_pos[1] + 1)
+        # Move left
+        elif action == self.actions.left:
+            next_pos = (self.agent_pos[0] - 1, self.agent_pos[1])
         else:
             assert False, "unknown action"
 
-        if self.step_count >= self.max_steps:
+        next_cell = self.grid.get(*next_pos)
+
+        if next_cell == None or next_cell.can_overlap():
+            self.agent_pos = next_pos
+
+        if next_cell != None and next_cell.type == 'goal':
+            if self.is_continuous:
+                self.agent_pos = self.start_pos
+            else:
+                done = True
+            reward = self._reward()
+
+        ### Not implemented yet
+        #
+        # # Pick up an object
+        # elif action == self.actions.pickup:
+        #     if next_cell and next_cell.can_pickup():
+        #         if self.carrying is None:
+        #             self.carrying = next_cell
+        #             self.carrying.cur_pos = np.array([-1, -1])
+        #             self.grid.set(*next_pos, None)
+        #
+        # # Drop an object
+        # elif action == self.actions.drop:
+        #     if not next_cell and self.carrying:
+        #         self.grid.set(*next_pos, self.carrying)
+        #         self.carrying.cur_pos = next_pos
+        #         self.carrying = None
+        #
+        # # Toggle/activate an object
+        # elif action == self.actions.toggle:
+        #     if next_cell:
+        #         next_cell.toggle(self, next_pos)
+        #
+        # # Done action (not used by default)
+        # elif action == self.actions.done:
+        #     pass
+
+        if not self.is_continuous and self.step_count >= self.max_steps:
             done = True
 
         obs = self.gen_obs()
@@ -1298,40 +1297,36 @@ class MiniGridEnv(gym.Env):
         r.rotate(self.agent_dir * 90)
         r.setLineColor(255, 0, 0)
         r.setColor(255, 0, 0)
-        r.drawPolygon([
-            (-12, 10),
-            ( 12,  0),
-            (-12, -10)
-        ])
+        r.drawCircle(0, 0, 12)
         r.pop()
 
-        # Compute which cells are visible to the agent
-        _, vis_mask = self.gen_obs_grid()
-
-        # Compute the absolute coordinates of the bottom-left corner
-        # of the agent's view area
-        f_vec = self.dir_vec
-        r_vec = self.right_vec
-        top_left = self.agent_pos + f_vec * (AGENT_VIEW_SIZE-1) - r_vec * (AGENT_VIEW_SIZE // 2)
-
-        # For each cell in the visibility mask
-        for vis_j in range(0, AGENT_VIEW_SIZE):
-            for vis_i in range(0, AGENT_VIEW_SIZE):
-                # If this cell is not visible, don't highlight it
-                if not vis_mask[vis_i, vis_j]:
-                    continue
-
-                # Compute the world coordinates of this cell
-                abs_i, abs_j = top_left - (f_vec * vis_j) + (r_vec * vis_i)
-
-                # Highlight the cell
-                r.fillRect(
-                    abs_i * CELL_PIXELS,
-                    abs_j * CELL_PIXELS,
-                    CELL_PIXELS,
-                    CELL_PIXELS,
-                    255, 255, 255, 75
-                )
+        # # Compute which cells are visible to the agent
+        # _, vis_mask = self.gen_obs_grid()
+        #
+        # # Compute the absolute coordinates of the bottom-left corner
+        # # of the agent's view area
+        # f_vec = self.dir_vec
+        # r_vec = self.right_vec
+        # top_left = self.agent_pos + f_vec * (AGENT_VIEW_SIZE-1) - r_vec * (AGENT_VIEW_SIZE // 2)
+        #
+        # # For each cell in the visibility mask
+        # for vis_j in range(0, AGENT_VIEW_SIZE):
+        #     for vis_i in range(0, AGENT_VIEW_SIZE):
+        #         # If this cell is not visible, don't highlight it
+        #         if not vis_mask[vis_i, vis_j]:
+        #             continue
+        #
+        #         # Compute the world coordinates of this cell
+        #         abs_i, abs_j = top_left - (f_vec * vis_j) + (r_vec * vis_i)
+        #
+        #         # Highlight the cell
+        #         r.fillRect(
+        #             abs_i * CELL_PIXELS,
+        #             abs_j * CELL_PIXELS,
+        #             CELL_PIXELS,
+        #             CELL_PIXELS,
+        #             255, 255, 255, 75
+        #         )
 
         r.endFrame()
 
