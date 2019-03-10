@@ -12,7 +12,8 @@ CELL_PIXELS = 32
 AGENT_VIEW_SIZE = 7
 
 # Size of the array given as an observation to the agent
-OBS_ARRAY_SIZE = (AGENT_VIEW_SIZE, AGENT_VIEW_SIZE, 3)
+# OBS_ARRAY_SIZE = (AGENT_VIEW_SIZE, AGENT_VIEW_SIZE, 3)
+OBS_ARRAY_SIZE = (1,2)
 
 # Map of color names to RGB values
 COLORS = {
@@ -689,14 +690,14 @@ class MiniGridEnv(gym.Env):
         # Observations are dictionaries containing an
         # encoding of the grid and a textual 'mission' string
         self.observation_space = spaces.Box(
-            low=0,
-            high=255,
+            low=1,
+            high=width, # or height (assuming a square grid as of now)
             shape=OBS_ARRAY_SIZE,
             dtype='uint8'
         )
-        self.observation_space = spaces.Dict({
-            'image': self.observation_space
-        })
+        # self.observation_space = spaces.Dict({
+        #     'image': self.observation_space
+        # })
 
         # Range of possible rewards
         self.reward_range = (0, 1)
@@ -1195,25 +1196,11 @@ class MiniGridEnv(gym.Env):
 
     def gen_obs(self):
         """
-        Generate the agent's view (partially observable, low-resolution encoding)
+        Generate the agent's state
         """
 
-        grid, vis_mask = self.gen_obs_grid()
-
-        # Encode the partially observable view into a numpy array
-        image = grid.encode(vis_mask)
-
-        assert hasattr(self, 'mission'), "environments must define a textual mission string"
-
-        # Observations are dictionaries containing:
-        # - an image (partially observable view of the environment)
-        # - the agent's direction/orientation (acting as a compass)
-        # - a textual mission string (instructions for the agent)
-        obs = {
-            'image': image,
-            'direction': self.agent_dir,
-            'mission': self.mission
-        }
+        # the state is just the agent's coordinates for now.
+        obs = np.array(self.agent_pos)
 
         return obs
 
