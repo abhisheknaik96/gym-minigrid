@@ -13,7 +13,7 @@ AGENT_VIEW_SIZE = 7
 
 # Size of the array given as an observation to the agent
 # OBS_ARRAY_SIZE = (AGENT_VIEW_SIZE, AGENT_VIEW_SIZE, 3)
-OBS_ARRAY_SIZE = (1,2)
+OBS_ARRAY_SIZE = (1,)
 
 # Map of color names to RGB values
 COLORS = {
@@ -687,14 +687,14 @@ class MiniGridEnv(gym.Env):
         # Actions are discrete integer values
         self.action_space = spaces.Discrete(len(self.actions))
 
-        # Observations are dictionaries containing an
-        # encoding of the grid and a textual 'mission' string
-        self.observation_space = spaces.Box(
-            low=1,
-            high=width, # or height (assuming a square grid as of now)
-            shape=OBS_ARRAY_SIZE,
-            dtype='uint8'
-        )
+        # Observations are discrete integer values
+        self.observation_space = spaces.Discrete(width*height)
+        # self.observation_space = spaces.Box(
+        #     low=1,
+        #     high=width, # or height (assuming a square grid as of now)
+        #     shape=OBS_ARRAY_SIZE,
+        #     dtype='uint8'
+        # )
         # self.observation_space = spaces.Dict({
         #     'image': self.observation_space
         # })
@@ -1199,8 +1199,9 @@ class MiniGridEnv(gym.Env):
         Generate the agent's state
         """
 
-        # the state is just the agent's coordinates for now.
-        obs = np.array(self.agent_pos)
+        # the state is just the agent's coordinates for now
+        linear_state = self.agent_pos[0] + self.agent_pos[1] * self.height
+        obs = np.array(linear_state)
 
         return obs
 
