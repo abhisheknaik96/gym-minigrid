@@ -1,11 +1,9 @@
-import sys
-import numpy
-import gym
-import time
+import numpy as np
 from optparse import OptionParser
-
+import gym
 import gym_minigrid
-from sarsa_agent import SarsaAgent
+import time
+from sarsa_agent import SarsaAgent, DifferentialSarsaAgent
 
 def main():
     parser = OptionParser()
@@ -20,7 +18,7 @@ def main():
         "--seed",
         type=int,
         help="random seed (default: 1)",
-        default=1
+        default=1000
     )
     parser.add_option(
         "--pause",
@@ -38,11 +36,11 @@ def main():
         "--run_length",
         type=int,
         help="number of timesteps of a single run",
-        default=10000
+        default=100000
     )
     (options, args) = parser.parse_args()
 
-
+    all_rewards = []
 
     for run in range(options.num_runs):
 
@@ -51,30 +49,55 @@ def main():
         env = gym.make(options.env_name)
         env.seed(seed)
 
-        agent = SarsaAgent()
-        agent_info = {"num_states" : 64, "num_actions" : 4, "epsilon" : 0.2, "random_seed" : seed}
+        agent = DifferentialSarsaAgent()
+        agent_info = {"num_states"  : 64,
+                      "num_actions" : 4,
+                      "epsilon"     : 0.2,
+                      "step-size"   : 0.1,
+                      "beta"        : 0.1,
+                      "random_seed" : seed}
         agent.agent_init(agent_info=agent_info)
 
         obs = env.reset()
         action = agent.agent_start(obs)
 
-        sum_rewards = 0.0
+        # sum_rewards = 0.0
+        rewards = []
 
         for _ in range(options.run_length):
 
             obs, reward, done, info = env.step(action)
             action = agent.agent_step(reward, obs)
 
-            sum_rewards += reward
+            # sum_rewards += reward
+            rewards.append(reward)
 
+            ### For visualization
             # renderer = env.render()
             # time.sleep(options.pause)
 
             # if renderer.window is None:
             #     break
 
-        print('Run=%s, AvgReward=%.4f' % (run+1, sum_rewards/options.run_length))
+        all_rewards.append(rewards)
+        print('Run=%s, AvgReward=%.4f' % (run+1, sum(rewards)/options.run_length))
 
+
+        # # Visualization after training
+        # obs = env.reset()
+        # action = agent.agent_start(obs)
+        #
+        # for _ in range(100):
+        #
+        #     obs, reward, done, info = env.step(action)
+        #     action = agent.choose_action(obs)
+        #     renderer = env.render()
+        #     time.sleep(options.pause)
+        #
+        #     if renderer.window is None:
+        #         break
+
+    np.save('results/rewards', all_rewards)
 
 if __name__ == "__main__":
     main()
