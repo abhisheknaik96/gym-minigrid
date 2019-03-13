@@ -2,7 +2,8 @@ import numpy as np
 from optparse import OptionParser
 import gym
 import gym_minigrid
-import time
+import sys
+from tqdm import tqdm
 from sarsa_agent import SarsaAgent, DifferentialSarsaAgent
 
 def main():
@@ -30,57 +31,70 @@ def main():
         "--num_runs",
         type=int,
         help="number of runs of experiment to average over",
-        default=1
+        default=10
     )
     parser.add_option(
         "--run_length",
         type=int,
         help="number of timesteps of a single run",
-        default=100000
+        default=50000
     )
     (options, args) = parser.parse_args()
 
-    all_rewards = []
+    step_sizes = [1e-3, 1e-2, 1e-1, 1.0]
+    betas = [1e-3, 1e-2, 1e-1, 1.0]
+    # step_sizes = [1e-1]
+    # betas = [1e-1]
 
-    for run in range(options.num_runs):
+    all_rewards = np.ndarray((len(step_sizes), len(betas), options.num_runs, options.run_length))
+    log_data = {"step_sizes" : step_sizes, "betas" : betas, "num_runs" : options.num_runs}
 
-        seed = options.seed + run
-        # Load the gym environment
-        env = gym.make(options.env_name)
-        env.seed(seed)
+    for step_idx, step_size in enumerate(step_sizes):
 
-        agent = DifferentialSarsaAgent()
-        agent_info = {"num_states"  : 64,
-                      "num_actions" : 4,
-                      "epsilon"     : 0.2,
-                      "step-size"   : 0.1,
-                      "beta"        : 0.1,
-                      "random_seed" : seed}
-        agent.agent_init(agent_info=agent_info)
+        for beta_idx, beta in enumerate(betas):
 
-        obs = env.reset()
-        action = agent.agent_start(obs)
+            tqdm.write('Alpha=%f, Beta=%f' % (step_size, beta))
 
-        # sum_rewards = 0.0
-        rewards = []
+            for run in tqdm(range(options.num_runs), file=sys.stdout):
 
-        for _ in range(options.run_length):
+                seed = options.seed + run
+                # Load the gym environment
+                env = gym.make(options.env_name)
+                env.seed(seed)
 
-            obs, reward, done, info = env.step(action)
-            action = agent.agent_step(reward, obs)
+                agent = DifferentialSarsaAgent()
+                agent_info = {"num_states"  : 64,
+                              "num_actions" : 4,
+                              "epsilon"     : 0.2,
+                              "step-size"   : step_size,
+                              "beta"        : beta,
+                              "random_seed" : seed}
+                agent.agent_init(agent_info=agent_info)
 
-            # sum_rewards += reward
-            rewards.append(reward)
+                obs = env.reset()
+                action = agent.agent_start(obs)
 
-            ### For visualization
-            # renderer = env.render()
-            # time.sleep(options.pause)
+                # sum_rewards = 0.0
+                # rewards = []
 
-            # if renderer.window is None:
-            #     break
+                for timestep in range(options.run_length):
 
-        all_rewards.append(rewards)
-        print('Run=%s, AvgReward=%.4f' % (run+1, sum(rewards)/options.run_length))
+                    obs, reward, done, info = env.step(action)
+                    action = agent.agent_step(reward, obs)
+
+                    # sum_rewards += reward
+                    all_rewards[step_idx][beta_idx][run][timestep] = reward
+
+                    ### For visualization
+                    # renderer = env.render()
+                    # time.sleep(options.pause)
+
+                    # if renderer.window is None:
+                    #     break
+
+
+            # all_rewards.append(rewards)
+            tqdm.write('AvgReward=%f\n' % (np.mean(np.mean(all_rewards[step_idx][beta_idx]))))
 
 
         # # Visualization after training
@@ -97,7 +111,8 @@ def main():
         #     if renderer.window is None:
         #         break
 
-    np.save('results/rewards', all_rewards)
+    log_data["all_rewards"] = all_rewards
+    np.save('results/rewards', log_data)
 
 if __name__ == "__main__":
     main()

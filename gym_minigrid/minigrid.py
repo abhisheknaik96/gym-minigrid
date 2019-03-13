@@ -1202,6 +1202,7 @@ class MiniGridEnv(gym.Env):
         # the state is just the agent's coordinates for now
         linear_state = self.agent_pos[0] + self.agent_pos[1] * self.height
         obs = np.array(linear_state)
+        obs = linear_state
 
         return obs
 
