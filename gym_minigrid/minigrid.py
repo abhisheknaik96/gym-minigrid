@@ -518,38 +518,6 @@ class Grid:
 
         r.pop()
 
-    def encode(self, vis_mask=None):
-        """
-        Produce a compact numpy encoding of the grid
-        """
-
-        if vis_mask is None:
-            vis_mask = np.ones((self.width, self.height), dtype=bool)
-
-        array = np.zeros((self.width, self.height, 3), dtype='uint8')
-        for i in range(self.width):
-            for j in range(self.height):
-                if vis_mask[i, j]:
-                    v = self.get(i, j)
-
-                    if v is None:
-                        array[i, j, 0] = OBJECT_TO_IDX['empty']
-                        array[i, j, 1] = 0
-                        array[i, j, 2] = 0
-                    else:
-                        # State, 0: open, 1: closed, 2: locked
-                        state = 0
-                        if hasattr(v, 'is_open') and not v.is_open:
-                            state = 1
-                        if hasattr(v, 'is_locked') and v.is_locked:
-                            state = 2
-
-                        array[i, j, 0] = OBJECT_TO_IDX[v.type]
-                        array[i, j, 1] = COLOR_TO_IDX[v.color]
-                        array[i, j, 2] = state
-
-        return array
-
     @staticmethod
     def decode(array):
         """
@@ -640,16 +608,47 @@ class MiniGridEnv(gym.Env):
     """
     2D grid world game environment
     """
-
     metadata = {
         'render.modes': ['human', 'rgb_array', 'pixmap'],
         'video.frames_per_second' : 10
     }
 
+
     # Enumeration of possible actions
     class Actions(IntEnum):
 
         # Move up, down, left, right
+        def encode(self, vis_mask=None):
+            """
+            Produce a compact numpy encoding of the grid
+            """
+
+            if vis_mask is None:
+                vis_mask = np.ones((self.width, self.height), dtype=bool)
+
+            array = np.zeros((self.width, self.height, 3), dtype='uint8')
+            for i in range(self.width):
+                for j in range(self.height):
+                    if vis_mask[i, j]:
+                        v = self.get(i, j)
+
+                        if v is None:
+                            array[i, j, 0] = OBJECT_TO_IDX['empty']
+                            array[i, j, 1] = 0
+                            array[i, j, 2] = 0
+                        else:
+                            # State, 0: open, 1: closed, 2: locked
+                            state = 0
+                            if hasattr(v, 'is_open') and not v.is_open:
+                                state = 1
+                            if hasattr(v, 'is_locked') and v.is_locked:
+                                state = 2
+
+                            array[i, j, 0] = OBJECT_TO_IDX[v.type]
+                            array[i, j, 1] = COLOR_TO_IDX[v.color]
+                            array[i, j, 2] = state
+
+            return array
         up = 0
         right = 1
         down = 2
@@ -666,14 +665,14 @@ class MiniGridEnv(gym.Env):
         done = 7
 
     def __init__(
-        self,
-        grid_size=None,
-        width=None,
-        height=None,
-        max_steps=100,
-        see_through_walls=False,
-        seed=1337,
-        is_continuous=True
+            self,
+            grid_size=None,
+            width=None,
+            height=None,
+            max_steps=150,
+            see_through_walls=False,
+            seed=1337,
+            is_continuous=True
     ):
         # Can't set both grid_size and width/height
         if grid_size:
@@ -899,12 +898,12 @@ class MiniGridEnv(gym.Env):
         )
 
     def place_obj(self,
-        obj,
-        top=None,
-        size=None,
-        reject_fn=None,
-        max_tries=math.inf
-    ):
+                  obj,
+                  top=None,
+                  size=None,
+                  reject_fn=None,
+                  max_tries=math.inf
+                  ):
         """
         Place an object at an empty position in the grid
 
@@ -957,11 +956,11 @@ class MiniGridEnv(gym.Env):
         return pos
 
     def place_agent(
-        self,
-        top=None,
-        size=None,
-        rand_dir=True,
-        max_tries=math.inf
+            self,
+            top=None,
+            size=None,
+            rand_dir=True,
+            max_tries=math.inf
     ):
         """
         Set the agent's starting point at an empty position in the grid
@@ -1100,7 +1099,7 @@ class MiniGridEnv(gym.Env):
         self.step_count += 1
 
         reward = 0
-        done = False
+        done = 0    # 0-False, 1-True, 2-timeout
 
         # Move up
         if action == self.actions.up:
@@ -1126,7 +1125,7 @@ class MiniGridEnv(gym.Env):
             if self.is_continuous:
                 self.agent_pos = self.start_pos
             else:
-                done = True
+                done = 1
             reward = self._reward()
 
         ### Not implemented yet
@@ -1156,7 +1155,7 @@ class MiniGridEnv(gym.Env):
         #     pass
 
         if not self.is_continuous and self.step_count >= self.max_steps:
-            done = True
+            done = 2
 
         obs = self.gen_obs()
 

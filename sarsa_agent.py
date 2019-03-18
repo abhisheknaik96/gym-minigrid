@@ -37,8 +37,8 @@ class DifferentialSarsaAgent(BaseAgent):
         self.q_values = np.zeros((self.num_states, self.num_actions))
         self.avg_reward = 0.0
         self.actions = list(range(self.num_actions))
-        self.past_action = 0
-        self.past_state = []
+        self.past_action = -1
+        self.past_state = -1
 
     def agent_start(self, observation):
         """The first method called when the experiment starts,
@@ -132,8 +132,8 @@ class SarsaAgent(BaseAgent):
 
         self.q_values = np.zeros((self.num_states, self.num_actions))
         self.actions = list(range(self.num_actions))
-        self.past_action = 0
-        self.past_state = []
+        self.past_action = -1
+        self.past_state = -1
 
     def agent_start(self, observation):
         """The first method called when the experiment starts,
