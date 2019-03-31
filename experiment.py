@@ -57,8 +57,8 @@ def run_sarsa():
     )
     (options, args) = parser.parse_args()
 
-    step_sizes = [1e-3, 1e-2, 1e-1, 1.0]
-    # step_sizes = [1e-1]
+    # step_sizes = [1e-3, 1e-2, 1e-1, 1.0]
+    step_sizes = [1e-1]
 
     all_rewards = np.ndarray((len(step_sizes), options.num_runs, options.num_eps), dtype=np.int)
     log_data = {"step_sizes": step_sizes, "num_runs": options.num_runs, "betas" : []}
@@ -113,6 +113,7 @@ def run_sarsa():
 
                 all_rewards[step_idx][run][eps] = num_steps
 
+            log_data["action_values"] = agent.q_values
             ### Visualization after training
             # visualize_after_training(env, agent, options.pause)
 
@@ -162,72 +163,89 @@ def run_diff_sarsa():
     # betas = [1e-3, 1e-2, 1e-1, 1.0]
     step_sizes = [1e-1]
     betas = [1e-2]
+    # kappas = [1e-3, 1e-2, 1e-1, 1.0]
+    kappas = [0.1, 0.2, 0.4, 0.6, 0.8, 0.9]
+    # kappas = [0.45, 0.55, 0.6, 0.65, 0.7]
 
-    all_rewards = np.ndarray((len(step_sizes), len(betas), options.num_runs, options.run_length))
-    log_data = {"step_sizes": step_sizes, "betas": betas, "num_runs": options.num_runs}
+    all_rewards = np.ndarray((len(step_sizes), len(betas), len(kappas), options.num_runs, options.run_length))
+    avg_values = np.ndarray((len(step_sizes), len(betas), len(kappas), options.num_runs))
+    log_data = {"step_sizes": step_sizes, "betas": betas, "kappas": kappas, "num_runs": options.num_runs}
 
     for step_idx, step_size in enumerate(step_sizes):
 
         for beta_idx, beta in enumerate(betas):
 
-            tqdm.write('DiffSarsa : Alpha=%f, Beta=%f' % (step_size, beta))
+            for kappa_idx, kappa in enumerate(kappas):
 
-            for run in tqdm(range(options.num_runs), file=sys.stdout):
+                tqdm.write('DiffSarsa : Alpha=%f, Beta=%f, Kappa=%f' % (step_size, beta, kappa))
 
-                seed = options.seed + run
-                # Load the gym environment
-                env = gym.make(options.env_name)
-                env.seed(seed)
+                for run in tqdm(range(options.num_runs), file=sys.stdout):
 
-                agent = DifferentialSarsaAgent()
-                agent_info = {"num_states": 64,
-                              "num_actions": 4,
-                              "epsilon": 0.2,
-                              "step-size": step_size,
-                              "beta": beta,
-                              "random_seed": seed}
-                agent.agent_init(agent_info=agent_info)
+                    seed = options.seed + run
+                    # Load the gym environment
+                    env = gym.make(options.env_name)
+                    env.seed(seed)
 
-                obs = env.reset()
-                action = agent.agent_start(obs)
+                    agent = DifferentialSarsaAgent()
+                    agent_info = {"num_states": 64,
+                                  "num_actions": 4,
+                                  "epsilon": 0.2,
+                                  "step-size": step_size,
+                                  "beta": beta,
+                                  "kappa": kappa,
+                                  "random_seed": seed}
+                    agent.agent_init(agent_info=agent_info)
 
-                # sum_rewards = 0.0
-                # rewards = []
+                    obs = env.reset()
+                    action = agent.agent_start(obs)
 
-                for timestep in range(options.run_length):
+                    # sum_rewards = 0.0
+                    # rewards = []
+                    avg_rewards = []
 
-                    obs, reward, done, info = env.step(action)
-                    action = agent.agent_step(reward, obs)
+                    for timestep in range(options.run_length):
 
-                    # sum_rewards += reward
-                    all_rewards[step_idx][beta_idx][run][timestep] = reward
+                        obs, reward, done, info = env.step(action)
+                        action = agent.agent_step(reward, obs)
 
-                    ### For visualization
-                    # renderer = env.render()
-                    # time.sleep(options.pause)
+                        # sum_rewards += reward
+                        all_rewards[step_idx][beta_idx][kappa_idx][run][timestep] = reward
 
-                    # if renderer.window is None:
-                    #     break
 
-                # Visualization after training
-                # obs = env.reset()
-                # action = agent.agent_start(obs)
-                #
-                # for _ in range(100):
-                #
-                #     obs, reward, done, info = env.step(action)
-                #     action = agent.choose_action(obs)
-                #     renderer = env.render()
-                #     time.sleep(options.pause)
-                #
-                #     if renderer.window is None:
-                #         break
+                        avg_rewards.append(agent.avg_reward)
+                        ### For visualization
+                        # renderer = env.render()
+                        # time.sleep(options.pause)
 
-            # all_rewards.append(rewards)
-            tqdm.write('AvgReward_total\t\t= %f' % (np.mean(all_rewards[step_idx][beta_idx])))
-            tqdm.write('AvgReward_last1000\t= %f\n' % (np.mean(all_rewards[step_idx][beta_idx][:,-1000:])))
+                        # if renderer.window is None:
+                        #     break
+
+                    # Visualization after training
+                    # obs = env.reset()
+                    # action = agent.agent_start(obs)
+                    #
+                    # for _ in range(100):
+                    #
+                    #     obs, reward, done, info = env.step(action)
+                    #     action = agent.choose_action(obs)
+                    #     renderer = env.render()
+                    #     time.sleep(options.pause)
+                    #
+                    #     if renderer.window is None:
+                    #         break
+
+                    log_data["action_values"] = agent.q_values
+                    log_data["average_rewards"] = avg_rewards
+                    avg_values[step_idx][beta_idx][kappa_idx][run] = agent.avg_value
+                    # tqdm.write("Avg. reward : %f" % agent.avg_reward)
+
+                # all_rewards.append(rewards)
+
+                tqdm.write('AvgReward_total\t\t= %f' % (np.mean(all_rewards[step_idx][beta_idx][kappa_idx])))
+                tqdm.write('AvgReward_last1000\t= %f\n' % (np.mean(all_rewards[step_idx,beta_idx,kappa_idx,:,-1000:])))
 
     log_data["all_rewards"] = all_rewards
+    log_data["avg_values"] = avg_values
     np.save('results/rewards_diff_sarsa', log_data)
 
 

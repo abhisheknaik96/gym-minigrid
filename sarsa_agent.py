@@ -31,11 +31,13 @@ class DifferentialSarsaAgent(BaseAgent):
         self.num_states = agent_info["num_states"]
         self.step_size = agent_info.get("step_size", 0.1)
         self.beta = agent_info.get("beta", 0.1)
+        self.kappa = agent_info.get("kappa", 0.01)
         self.epsilon = agent_info.get("epsilon", 0.1)
         self.rand_generator = np.random.RandomState(agent_info.get('random_seed', 22))
 
-        self.q_values = np.zeros((self.num_states, self.num_actions))
-        self.avg_reward = 0.0
+        self.q_values = np.zeros((self.num_states, self.num_actions)) + 2.0
+        self.avg_reward = 5.0
+        self.avg_value = 2.0
         self.actions = list(range(self.num_actions))
         self.past_action = -1
         self.past_state = -1
@@ -74,6 +76,7 @@ class DifferentialSarsaAgent(BaseAgent):
                 self.q_values[self.past_state][self.past_action]
         self.q_values[self.past_state][self.past_action] += self.step_size * delta
         self.avg_reward += self.beta * delta
+        self.avg_value += self.kappa * (self.q_values[self.past_state][self.past_action] - self.avg_value)
 
         self.past_state = observation
         self.past_action = action
@@ -88,8 +91,10 @@ class DifferentialSarsaAgent(BaseAgent):
                 terminal state.
         """
 
-        self.q_values[self.past_state][self.past_action] += self.step_size * \
-                        (reward - self.avg_reward - self.q_values[self.past_state][self.past_action])
+        # These updates will never be performed.
+        delta = reward - self.avg_reward - self.q_values[self.past_state][self.past_action]
+        self.q_values[self.past_state][self.past_action] += self.step_size * delta
+        self.avg_reward += self.beta * delta
 
         # for i in range(6):
         #     for j in range(9):
@@ -130,7 +135,7 @@ class SarsaAgent(BaseAgent):
         self.epsilon = agent_info.get("epsilon", 0.1)
         self.rand_generator = np.random.RandomState(agent_info.get('random_seed', 22))
 
-        self.q_values = np.zeros((self.num_states, self.num_actions))
+        self.q_values = np.zeros((self.num_states, self.num_actions)) + 2.0
         self.actions = list(range(self.num_actions))
         self.past_action = -1
         self.past_state = -1

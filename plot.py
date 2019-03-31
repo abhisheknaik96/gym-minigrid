@@ -85,12 +85,36 @@ def print_sweep_metrics():
                                                        np.mean(np.mean(all_rewards[step_idx][beta_idx]))))
 
 
+def make_action_values_heatmap(action_values, avg_value=0.0):
+
+    data = np.max(action_values, axis=1)
+    data = np.rot90(np.reshape(data, (8,8)))
+    print(data)
+    data -= avg_value
+    print(avg_value)
+    print(data)
+    # plt.imshow(data, cmap='hot', interpolation='nearest')
+    heatmap = plt.pcolor(data)
+    plt.colorbar(heatmap)
+    # plt.title(r'Differential Sarsa, $\epsilon=0.2$')
+    plt.title(r'Differential Sarsa, initialized to 2.0')
+
+    plt.show()
+
+
+def plot_learned_avg_values(avg_values, kappas):
+    data = np.mean(avg_values[0][0], axis=1)
+    plt.plot(kappas, data, marker='o')
+    plt.xlabel(r'Step-size $\kappa$')
+    plt.ylabel('Learned Average Value')
+    plt.show()
+
 # plot_learning_curve_per_run(2000)
 # print_sweep_metrics()
 # plot_learning_curve(0, 0, 2000)
 
-data_sarsa, step_sizes_sarsa = get_sarsa_data()
-data_diff_sarsa = get_diff_sarsa_data()
+# data_sarsa, step_sizes_sarsa = get_sarsa_data()
+# data_diff_sarsa = get_diff_sarsa_data()
 
 # for i in range(len(data_sarsa)):
 #     data = np.convolve(np.ones(window_length),
@@ -99,18 +123,33 @@ data_diff_sarsa = get_diff_sarsa_data()
 #     # print(data[-1], step_sizes_sarsa[i])
 #     plt.plot(data, label=step_sizes_sarsa[i])
 
-data_sarsa = np.convolve(np.ones(window_length),
-                         np.mean(data_sarsa[0], axis=0) / window_length,
-                         mode='valid')
+# data_sarsa = np.convolve(np.ones(window_length),
+#                          np.mean(data_sarsa[0], axis=0) / window_length,
+#                          mode='valid')
+#
+# plt.plot(data_sarsa, label='Sarsa')
+# plt.plot(data_diff_sarsa[:20000], label='Diff Sarsa')
+#
+# print(data_sarsa[15000], data_diff_sarsa[15000])
+#
+# # plt.title('Average reward over time for Sarsa with various step-sizes')
+# plt.title('Average reward over time')
+# plt.xlabel('Timesteps')
+# plt.ylabel('Avg. reward')
+# plt.legend(loc='center right')
+# plt.show()
 
-plt.plot(data_sarsa, label='Sarsa')
-plt.plot(data_diff_sarsa[:20000], label='Diff Sarsa')
+# data = np.load('results/rewards_sarsa.npy').item()
+data = np.load('results/rewards_diff_sarsa.npy').item()
+# action_values = data['action_values']
+# make_action_values_heatmap(action_values, data['average_value'])
 
-print(data_sarsa[15000], data_diff_sarsa[15000])
+avg_values = data['avg_values']
+kappas = data['kappas']
+plot_learned_avg_values(avg_values, kappas)
 
-# plt.title('Average reward over time for Sarsa with various step-sizes')
-plt.title('Average reward over time')
-plt.xlabel('Timesteps')
-plt.ylabel('Avg. reward')
-plt.legend(loc='center right')
-plt.show()
+# plt.plot(data["average_rewards"])
+# plt.title('Learned average reward with time, initialized to 5.0')
+# plt.xlabel('Timesteps')
+# plt.ylabel(r'$\bar{R}$', rotation=0)
+# plt.show()
